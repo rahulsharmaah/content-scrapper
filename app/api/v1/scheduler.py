@@ -6,44 +6,44 @@ import structlog
 from datetime import datetime, timedelta
 
 from app.core.database import get_db
-from app.models.job import ScrapingJob, JobFrequency, JobStatus
+from app.models.job import ScrapingJob as ScrapingJobModel, JobFrequency, JobStatus
+from app.schemas.job import ScrapingJob, ScrapingJobCreate
 from app.workers.tasks import scheduled_scraping_task
 
 logger = structlog.get_logger()
 router = APIRouter()
 
-@router.post("/jobs/")
+@router.post("/jobs/", response_model=ScrapingJob)
 async def create_scheduled_job(
-    target_url: str,
-    frequency: JobFrequency = JobFrequency.DAILY,
+    job: ScrapingJobCreate,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new scheduled scraping job"""
     try:
         # Calculate next run time
         now = datetime.utcnow()
-        if frequency == JobFrequency.DAILY:
+        if job.frequency == JobFrequency.DAILY:
             next_run = now + timedelta(days=1)
-        elif frequency == JobFrequency.WEEKLY:
+        elif job.frequency == JobFrequency.WEEKLY:
             next_run = now + timedelta(weeks=1)
-        elif frequency == JobFrequency.MONTHLY:
+        elif job.frequency == JobFrequency.MONTHLY:
             next_run = now + timedelta(days=30)
         else:
             next_run = now + timedelta(days=1)
         
-        job = ScrapingJob(
-            target_url=target_url,
-            frequency=frequency,
+        db_job = ScrapingJobModel(
+            target_url=job.target_url,
+            frequency=job.frequency,
             next_run_at=next_run,
-            status=JobStatus.ACTIVE
+            status=job.status
         )
         
-        db.add(job)
+        db.add(db_job)
         await db.commit()
-        await db.refresh(job)
+        await db.refresh(db_job)
         
-        logger.info("Scheduled job created", job_id=job.id, target_url=target_url)
-        return job
+        logger.info("Scheduled job created", job_id=db_job.id, target_url=job.target_url)
+        return db_job
         
     except Exception as e:
         await db.rollback()
@@ -60,7 +60,7 @@ async def get_scheduled_jobs(
     """Get all scheduled jobs"""
     try:
         result = await db.execute(
-            select(ScrapingJob).order_by(ScrapingJob.created_at.desc())
+            select(ScrapingJobModel).order_by(ScrapingJobModel.created_at.desc())
         )
         jobs = result.scalars().all()
         return jobs
@@ -79,7 +79,7 @@ async def pause_job(
 ):
     """Pause a scheduled job"""
     try:
-        result = await db.execute(select(ScrapingJob).where(ScrapingJob.id == job_id))
+        result = await db.execute(select(ScrapingJobModel).where(ScrapingJobModel.id == job_id))
         job = result.scalar_one_or_none()
         
         if not job:
@@ -111,7 +111,7 @@ async def resume_job(
 ):
     """Resume a paused job"""
     try:
-        result = await db.execute(select(ScrapingJob).where(ScrapingJob.id == job_id))
+        result = await db.execute(select(ScrapingJobModel).where(ScrapingJobModel.id == job_id))
         job = result.scalar_one_or_none()
         
         if not job:
@@ -143,7 +143,7 @@ async def run_job_now(
 ):
     """Run a scheduled job immediately"""
     try:
-        result = await db.execute(select(ScrapingJob).where(ScrapingJob.id == job_id))
+        result = await db.execute(select(ScrapingJobModel).where(ScrapingJobModel.id == job_id))
         job = result.scalar_one_or_none()
         
         if not job:
