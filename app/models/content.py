@@ -20,10 +20,10 @@ class Post(Base):
     rewritten_title = Column(Text)
     rewritten_body = Column(Text)
     status = Column(Enum(ContentStatus), default=ContentStatus.PENDING)
-    metadata = Column(Text)  # JSON string for additional data
+    content_metadata = Column(Text)  # Changed from 'metadata' to 'content_metadata'
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Made nullable for now
     user = relationship("User", back_populates="posts")
