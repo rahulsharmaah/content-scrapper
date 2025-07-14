@@ -19,7 +19,7 @@ router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -139,8 +139,7 @@ async def login(
         logger.info("User logged in", username=user.username)
         return {
             "access_token": access_token,
-            "token_type": "bearer",
-            "user": user
+            "token_type": "bearer"
         }
         
     except HTTPException:
@@ -151,7 +150,6 @@ async def login(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
         )
-
 @router.get("/me", response_model=User)
 async def get_current_user_info(current_user: UserModel = Depends(get_current_user)):
     """Get current user information"""
