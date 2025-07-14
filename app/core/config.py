@@ -18,8 +18,20 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # CORS
-    ALLOWED_HOSTS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # CORS - More permissive for development
+    ALLOWED_HOSTS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:8080",
+        "http://localhost:4200",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:8080", 
+        "http://127.0.0.1:4200",
+        "http://127.0.0.1:8000",
+        "*"  # Allow all in development
+    ]
     
     # LLM APIs
     OPENAI_API_KEY: Optional[str] = None
